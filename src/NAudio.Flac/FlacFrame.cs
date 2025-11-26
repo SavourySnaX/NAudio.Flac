@@ -22,7 +22,7 @@ namespace NAudio.Flac
         private Stream _stream;
         private FlacMetadataStreamInfo _streamInfo;
 
-        private GCHandle _handle1, _handle2;
+        private GCHandle[] _handle1, _handle2;
         private int[] _destBuffer;
         private int[] _residualBuffer;
 
@@ -254,12 +254,14 @@ namespace NAudio.Flac
 
             List<FlacSubFrameData> output = new List<FlacSubFrameData>();
 
+            _handle1 = new GCHandle[Header.Channels];
+            _handle2 = new GCHandle[Header.Channels];
             for (int c = 0; c < Header.Channels; c++)
             {
                 fixed (int* ptrDestBuffer = _destBuffer, ptrResidualBuffer = _residualBuffer)
                 {
-                    _handle1 = GCHandle.Alloc(_destBuffer, GCHandleType.Pinned);
-                    _handle2 = GCHandle.Alloc(_residualBuffer, GCHandleType.Pinned);
+                    _handle1[c] = GCHandle.Alloc(_destBuffer, GCHandleType.Pinned);
+                    _handle2[c] = GCHandle.Alloc(_residualBuffer, GCHandleType.Pinned);
 
                     FlacSubFrameData data = new FlacSubFrameData
                     {
@@ -275,10 +277,22 @@ namespace NAudio.Flac
 
         private void FreeBuffers()
         {
-            if (_handle1.IsAllocated)
-                _handle1.Free();
-            if (_handle2.IsAllocated)
-                _handle2.Free();
+          if (_handle1 != null)
+          {
+            foreach (var handle in _handle1)
+            {
+                if (handle.IsAllocated)
+                    handle.Free();
+            }
+          }
+          if (_handle2 != null)
+          {
+            foreach (var handle in _handle2)
+            {
+                if (handle.IsAllocated)
+                    handle.Free();
+            }
+          }
         }
 
         private bool _disposed;
